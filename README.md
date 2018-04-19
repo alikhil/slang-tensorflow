@@ -11,7 +11,7 @@ Idea of library design is taken from [TensorFlowSharp](https://github.com/miguel
 
 ## Markers
 
-When I have been working on this project the SLang compiler was not ready yet. Also I did know anything about standard library of SLang. So, everytime when I asked myself `Oh, how to do XXX in SLang?` and come with no answer I left markers in my code. For instance:
+When I have been working on this project the SLang compiler was not ready yet. Also I did have full view of SLang standard library. So, everytime when I asked myself `Oh, how to do XXX in SLang?` and come with no answer I left markers in my code. For instance:
 
 * `TODO:`
 * `ASSUME:`
