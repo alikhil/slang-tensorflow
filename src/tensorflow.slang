@@ -1,5 +1,6 @@
 
 // IntPtr ~ ref Int
+// VoidRef ~ void*
 
 // We use this TF_Xxx as the native "TF_Xxx *" as those are opaque
 use IntPtr as TF_Status 
@@ -546,7 +547,7 @@ unit TFOperationDesc_Static
 	
 	routine TF_SetAttrTensorShapeProto(desc: TF_OperationDescription, attr_name: String, proto: IntPtr, proto_len: UIntPtr, status: TF_Status) is external
 	
-	// TODO: was marked with todo
+	// TODO: was marked with todo in TensorFlowSharp
 	routine TF_SetAttrTensorShapeProtoList(desc: TF_OperationDescription, attr_name: String, protos: ref ref Void, proto_lens: UIntPtr, num_shapes: Int, status: TF_Status) is external
 	
 	routine TF_SetAttrTensor(desc: TF_OperationDescription, attr_name: String, value: TF_Tensor, status: TF_Status) is external
@@ -838,7 +839,7 @@ unit TFOperationDesc extend TFDisposable
 
 		// extern void TF_SetAttrValueProto (TF_OperationDescription *desc, const char *attr_name, const void *proto, size_t proto_len, TF_Status *status);
 		// [DllImport (NativeBinding.TensorFlowLibrary)]
-		// routine TF_SetAttrValueProto(desc: TF_OperationDescription, attr_name: String, void* proto, size_t proto_len, TF_Status status);
+		// routine TF_SetAttrValueProto(desc: TF_OperationDescription, attr_name: String, VoidRef proto, size_t proto_len, TF_Status status);
 		// TODO:
 
 
@@ -875,32 +876,19 @@ unit TFShape
         dims := d
     end
 
-		/// Gets the length of the specified dimension in the tensor
-		/// </summary>
-		/// <returns>The length, -1 for shapes that have an unknown dimension.</returns>
-		/// <param name="dimension">Dimension.</param>
-		public int GetLength (int dimension) => dims == null ? -1 : dims.GetLength (dimension);
+	// Assume: array.GetLength 
+	routine GetLength(dimension: Integer) => dims.GetLength (dimension)
 
-		/// <summary>
-		/// Number of dimensions represented by this shape.
-		/// </summary>
-		/// <value>The number dimensions, -1 if the number of dimensions is unknown, 0 if the shape represent a scalar, 1 for a vector, 2 for a matrix and so on..</value>
-		public int NumDimensions => dims == null ? -1 : dims.Length;
+	routine NumDimensions() => dims.count
 
-		/// <summary>
-		/// Gets a value indicating whether all the dimensions in the <see cref="T:TensorFlow.TFShape"/> are fully specified.
-		/// </summary>
-		/// <value><c>true</c> if is fully specified; otherwise, <c>false</c>.</value>
-		public bool IsFullySpecified {
-			get {
-				if (dims == null)
-					return false;
-				foreach (var j in dims)
-					if (j == -1)
-						return false;
-				return true;
-			}
-		}
+	routine IsFullySpecified(): Boolean is
+		loop i in 0..dims.count do
+			if i == -1 then
+				return false
+			end
+		end
+		return true
+	end
 
 	routine ToArray(): Array[Int64] is
 		// Assume: Array.clone()
@@ -962,3 +950,169 @@ unit TFShape
 	}
 
 end
+
+unit TFOperation_Static
+		
+	routine TF_OperationName(oper: TF_Operation): IntPtr is external
+
+	routine TF_OperationOpType(oper: TF_Operation): IntPtr is external
+
+	routine TF_OperationDevice(oper: TF_Operation): IntPtr is external
+
+	routine TF_OperationNumOutputs(oper: TF_Operation): Integer is external
+
+	routine TF_OperationOutputListLength(oper: TF_Operation, arg_name String, status: TF_Status): Integer is external
+
+	routine TF_OperationNumInputs(oper: TF_Operation): Integer is external
+
+	routine TF_OperationInputListLength(oper: TF_Operation, arg_name String, status: TF_Status): Integer is external
+
+	routine TF_OperationNumControlInputs(oper: TF_Operation): Integer is external
+
+	routine TF_OperationGetControlInputs(oper: TF_Operation, control_inputs: TF_Operation, max_control_inputs: Integer): Integer is external
+
+	routine TF_OperationNumControlOutputs(oper: TF_Operation): Integer is external
+
+	// WARN: [Out] [MarshalAs (UnmanagedType.LPArray, SizeParamIndex = 2)] 
+	// How to do it?
+	routine TF_OperationGetControlOutputs(oper: TF_Operation, /*[Out] [MarshalAs (UnmanagedType.LPArray, SizeParamIndex = 2)]*/ control_outputs Array[IntPtr], max_control_outputs: Integer): Integer is external
+
+	routine TF_OperationGetAttrMetadata(oper: TF_Operation, attr_name: String, status: TF_Status): TFAttributeMetadata is external
+// marked with TODO:
+	routine TF_OperationGetAttrString(oper: TF_Operation, attr_name: String, value: VoidRef, max_length: UIntPtr, status: TF_Status) is external
+
+	routine TF_OperationGetAttrStringList(oper: TF_Operation, attr_name: String, values: ref VoidRef, ref UIntPtr lengths, max_values: Integer, storage: storage_size: VoidRefInteger: UIntPtr, status: TF_Status): void is external
+
+	routine TF_OperationGetAttrInt(oper: TF_Operation, attr_name: String, value: ref Int64, status: TF_Status) is external
+
+	routine TF_OperationGetAttrIntList(oper: TF_Operation, attr_name: String, values: ref Int64, max_values: Integer, status: TF_Status) is external
+
+	routine TF_OperationGetAttrFloat(oper: TF_Operation, attr_name: String, value: ref Float, status: TF_Status) is external
+
+	routine TF_OperationGetAttrFloatList(oper: TF_Operation, attr_name: String, values: ref Float, max_values: Integer, status: TF_Status) is external
+
+	routine TF_OperationGetAttrBool(oper: TF_Operation, attr_name: String, value: ref Byte, status: TF_Status) is external
+
+	routine TF_OperationGetAttrBoolList(oper: TF_Operation, attr_name: String, values: ref Byte, max_values: Integer, status: TF_Status) is external
+
+	routine TF_OperationGetAttrType(oper: TF_Operation, attr_name: String, value: ref TFDataType, status: TF_Status) is external
+
+	routine TF_OperationGetAttrTypeList(oper: TF_Operation, attr_name: String, values: ref TFDataType, max_values: Integer, status: TF_Status) is external
+
+	routine TF_OperationGetAttrShape(oper: TF_Operation, attr_name: String, value: ref Int64, num_dims: Integer, status: TF_Status) is external
+
+	routine TF_OperationGetAttrShapeList(oper: TF_Operation, attr_name: String, long** dims, num_dims: ref Integer, num_shapes: Integer, storage: ref Int64, storage_size: Integer, status: TF_Status) is external
+
+	routine TF_OperationGetAttrTensorShapeProto(oper: TF_Operation, attr_name: String, value: ref LLBuffer, status: TF_Status) is external
+
+	// WARN: ref ref; is it ok?
+	routine TF_OperationGetAttrTensorShapeProtoList(oper: TF_Operation, attr_name: String, values: ref ref LLBuffer, max_values: Integer, status: TF_Status) is external
+
+	routine TF_OperationGetAttrTensor(oper: TF_Operation, attr_name: String, value: ref TF_Tensor, status: TF_Status) is external
+
+	routine TF_OperationGetAttrTensorList(oper: TF_Operation, attr_name: String, values: ref TF_Tensor, max_values: Integer, status: TF_Status) is external
+
+	routine TF_OperationGetAttrValueProto(oper: TF_Operation, attr_name: String, output_attr_value: ref LLBuffer, status: TF_Status) is external
+// up to here ^
+	routine TF_OperationToNodeDef(oper: TF_Operation, output_node_def: ref LLBuffer, status: TF_Status) is external
+
+end
+
+unit TFOperation is
+
+	use TFOperation_Static
+
+	Handle: IntPtr
+	graph: TFGraph
+
+	init(graph: TFGraph, handle: IntPtr) is
+		this.Handle := handle
+		this.graph := graph
+	end
+
+
+
+		// Assume: IntPtr.GetStr()
+		routine Name() => if handle = IntPtr.Zero then "<ObjectDisposed>" else TF_OperationName(handle).GetStr()
+
+		routine OpType() => if handle = IntPtr.Zero then "<ObjectDisposedException>" else TF_OperationOpType(handle).GetStr()
+
+		// routine string Device => TF_OperationDevice (handle).GetStr ();
+
+		routine NumOutputs() => if handle = IntPtr.Zero then -1 else TF_OperationNumOutputs (handle)
+
+
+		routine OutputListLength (argName: String, status: TFStatus): Integer is
+			if handle = IntPtr.Zero then
+				raise "Object disposed!"
+			end
+			cstatus := TFStatus.Setup (status)
+			res := TF_OperationOutputListLength (handle, argName, cstatus.handle)
+			cstatus.CheckMaybeRaise (status)
+			return res
+		end
+
+
+		routine NumInputs => TF_OperationNumInputs (handle)
+
+		routine InputListLength (argName: String, status: TFStatus): Integer is
+			if handle = IntPtr.Zero then
+				raise "Object disposed!"
+			end
+			cstatus := TFStatus.Setup (status)
+			res := TF_OperationInputListLength (handle, argName, cstatus.handle)
+			cstatus.CheckMaybeRaise (status)
+			return res
+		}
+
+		routine NumControlInputs() => TF_OperationNumControlInputs (handle)
+
+
+		routine NumControlOutputs() => TF_OperationNumControlOutputs (handle)
+
+
+		routine ControlOutputs(): Array[TFOperation] is
+			n := NumControlOutputs()
+			arr := Array[IntPtr,n].init()
+			
+			TF_OperationGetControlOutputs (handle, arr, n)
+			ret := Array[TFOperation, n].init()
+			loop i in 0..n do
+				ret(i) := TFOperation.init(graph, arr(i))
+			end
+			return ret
+		end
+
+
+		routine GetAttributeMetadata(attrName: String, status: TFStatus): TFAttributeMetadata is
+			if handle = IntPtr.Zero then
+				raise "Object disposed!"
+			end
+			cstatus := TFStatus.Setup(status)
+			x := TF_OperationGetAttrMetadata (handle, attrName, cstatus.handle)
+			cstatus.CheckMaybeRaise (status)
+			return x
+		end
+
+		routine ToNodeDef(status: TFStatus): TFBuffer is
+			if handle = IntPtr.Zero then
+				raise "Object disposed!"
+			end
+			cstatus := TFStatus.Setup (status)
+			r := TFBuffer.init()
+			TF_OperationToNodeDef (handle, r.LLBuffer, cstatus.handle)
+
+			// No need to raise, we can return null in that case.
+			// WARN: I don't know how resolve
+			if not cstatus.Ok then
+				r.Dispose ()
+				raise "some shit happened"
+				// return null 
+			end
+			return r
+		end
+
+		routine () (idx: Integer): TFOutput is
+			return TFOutput.init(this, idx)
+		end
+	}
