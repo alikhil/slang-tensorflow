@@ -1416,3 +1416,16 @@ unit TFSession extend TFDisposable
 		return result
 	end
 end
+
+
+unit TFAttributeMetadata
+	isList: Byte
+	routine IsList(): Boolean => isList /= 0
+	ListSize: Int64
+	Type: TFAttributeType
+	TotalSize: Int64
+
+	override ToString(): String is
+		return String.Format ($"[TFAttributeMetadata IsList={IsList} ListSize={ListSize} Type={Type} TotalSize={TotalSize}]")
+	end
+end
