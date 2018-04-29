@@ -307,7 +307,7 @@ unit TF_Status extend TFDisposable
 
     CheckMaybeRaise(status: ?TFStatus, last: Boolean = true) is 
         if (not status is TFStatus) then
-				if (handle = IntPtr.Zero) then
+				if handle = IntPtr.Zero then
 					StdOut.WriteLine ("oops")
                 end
 				if (StatusCode /= TFCode.Ok) then
@@ -375,14 +375,14 @@ unit TFSessionOptions extend TFDisposable
 
 
     SetTarget(target: String) is
-        if (handle = IntPtr.Zero) then
+        if handle = IntPtr.Zero then
             raise "Object disposed!"
         end
         TF_SetTarget(target)
     end
 
     SetConfig(protoData: IntPtr, length: Int, status: TF_Status) is
-        if (handle = IntPtr.Zero) then
+        if handle = IntPtr.Zero then
             raise "Object disposed!"
         end
 
@@ -1030,89 +1030,392 @@ unit TFOperation is
 		this.graph := graph
 	end
 
+		// Assume:  Marshal.PtrToStringAnsi()
+	routine Name() => if handle = IntPtr.Zero then "<ObjectDisposed>" else Marshal.PtrToStringAnsi(TF_OperationName(handle))
+
+	routine OpType() => if handle = IntPtr.Zero then "<ObjectDisposedException>" else  Marshal.PtrToStringAnsi(TF_OperationOpType(handle))
+
+	// routine string Device =>  Marshal.PtrToStringAnsi(TF_OperationDevice (handle));
+
+	routine NumOutputs() => if handle = IntPtr.Zero then -1 else TF_OperationNumOutputs (handle)
 
 
-		// Assume: IntPtr.GetStr()
-		routine Name() => if handle = IntPtr.Zero then "<ObjectDisposed>" else TF_OperationName(handle).GetStr()
-
-		routine OpType() => if handle = IntPtr.Zero then "<ObjectDisposedException>" else TF_OperationOpType(handle).GetStr()
-
-		// routine string Device => TF_OperationDevice (handle).GetStr ();
-
-		routine NumOutputs() => if handle = IntPtr.Zero then -1 else TF_OperationNumOutputs (handle)
-
-
-		routine OutputListLength (argName: String, status: TFStatus): Integer is
-			if handle = IntPtr.Zero then
-				raise "Object disposed!"
-			end
-			cstatus := TFStatus.Setup (status)
-			res := TF_OperationOutputListLength (handle, argName, cstatus.handle)
-			cstatus.CheckMaybeRaise (status)
-			return res
+	routine OutputListLength (argName: String, status: TFStatus): Integer is
+		if handle = IntPtr.Zero then
+			raise "Object disposed!"
 		end
+		cstatus := TFStatus.Setup (status)
+		res := TF_OperationOutputListLength (handle, argName, cstatus.handle)
+		cstatus.CheckMaybeRaise (status)
+		return res
+	end
 
 
-		routine NumInputs => TF_OperationNumInputs (handle)
+	routine NumInputs => TF_OperationNumInputs (handle)
 
-		routine InputListLength (argName: String, status: TFStatus): Integer is
-			if handle = IntPtr.Zero then
-				raise "Object disposed!"
-			end
-			cstatus := TFStatus.Setup (status)
-			res := TF_OperationInputListLength (handle, argName, cstatus.handle)
-			cstatus.CheckMaybeRaise (status)
-			return res
-		}
-
-		routine NumControlInputs() => TF_OperationNumControlInputs (handle)
-
-
-		routine NumControlOutputs() => TF_OperationNumControlOutputs (handle)
-
-
-		routine ControlOutputs(): Array[TFOperation] is
-			n := NumControlOutputs()
-			arr := Array[IntPtr,n].init()
-			
-			TF_OperationGetControlOutputs (handle, arr, n)
-			ret := Array[TFOperation, n].init()
-			loop i in 0..n do
-				ret(i) := TFOperation.init(graph, arr(i))
-			end
-			return ret
+	routine InputListLength (argName: String, status: TFStatus): Integer is
+		if handle = IntPtr.Zero then
+			raise "Object disposed!"
 		end
-
-
-		routine GetAttributeMetadata(attrName: String, status: TFStatus): TFAttributeMetadata is
-			if handle = IntPtr.Zero then
-				raise "Object disposed!"
-			end
-			cstatus := TFStatus.Setup(status)
-			x := TF_OperationGetAttrMetadata (handle, attrName, cstatus.handle)
-			cstatus.CheckMaybeRaise (status)
-			return x
-		end
-
-		routine ToNodeDef(status: TFStatus): TFBuffer is
-			if handle = IntPtr.Zero then
-				raise "Object disposed!"
-			end
-			cstatus := TFStatus.Setup (status)
-			r := TFBuffer.init()
-			TF_OperationToNodeDef (handle, r.LLBuffer, cstatus.handle)
-
-			// No need to raise, we can return null in that case.
-			// WARN: I don't know how resolve
-			if not cstatus.Ok then
-				r.Dispose ()
-				raise "some shit happened"
-				// return null 
-			end
-			return r
-		end
-
-		routine () (idx: Integer): TFOutput is
-			return TFOutput.init(this, idx)
-		end
+		cstatus := TFStatus.Setup (status)
+		res := TF_OperationInputListLength (handle, argName, cstatus.handle)
+		cstatus.CheckMaybeRaise (status)
+		return res
 	}
+
+	routine NumControlInputs() => TF_OperationNumControlInputs (handle)
+
+
+	routine NumControlOutputs() => TF_OperationNumControlOutputs (handle)
+
+
+	routine ControlOutputs(): Array[TFOperation] is
+		n := NumControlOutputs()
+		arr := Array[IntPtr,n].init()
+		
+		TF_OperationGetControlOutputs (handle, arr, n)
+		ret := Array[TFOperation, n].init()
+		loop i in 0..n do
+			ret(i) := TFOperation.init(graph, arr(i))
+		end
+		return ret
+	end
+
+
+	routine GetAttributeMetadata(attrName: String, status: TFStatus): TFAttributeMetadata is
+		if handle = IntPtr.Zero then
+			raise "Object disposed!"
+		end
+		cstatus := TFStatus.Setup(status)
+		x := TF_OperationGetAttrMetadata (handle, attrName, cstatus.handle)
+		cstatus.CheckMaybeRaise (status)
+		return x
+	end
+
+	routine ToNodeDef(status: TFStatus): TFBuffer is
+		if handle = IntPtr.Zero then
+			raise "Object disposed!"
+		end
+		cstatus := TFStatus.Setup (status)
+		r := TFBuffer.init()
+		TF_OperationToNodeDef (handle, r.LLBuffer, cstatus.handle)
+
+		// No need to raise, we can return null in that case.
+		// WARN: I don't know how resolve
+		if not cstatus.Ok then
+			r.Dispose ()
+			raise "some shit happened"
+			// return null 
+		end
+		return r
+	end
+
+	routine () (idx: Integer): TFOutput is
+		return TFOutput.init(this, idx)
+	end
+end
+
+
+unit TFSession_Static 
+		routine TF_NewSession (graph: TF_Graph, opts: TF_SessionOptions, status: TF_Status): TF_Session is external
+		routine TF_LoadSessionFromSavedModel (session_options: TF_SessionOptions, run_options: ref LLBuffer, export_dir: String, tags: Array[String], tags_len Int32, graph: TF_Graph, meta_graph_def:  ref LLBuffer, status:  TF_Status): TF_Session is external
+		routine TF_CloseSession (session: TF_Session, status: TF_Status) is external
+		routine TF_DeleteSession (session: TF_Session, status: TF_Status) is external
+		routine TF_SessionRun (session: TF_Session, run_options: ref LLBuffer, inputs: Array[TFOutput], input_values: Array[TF_Tensor], ninputs: Int32, outputs: Array[TFOutput], output_values: Array[TF_Tensor], noutputs: Int32, target_opers: Array[TF_Operation], ntargets: Int32, run_metadata: ref LLBuffer, status: TF_Status) is external
+		routine TF_SessionPRunSetup (session: TF_Session, inputs: Array[TFOutput], ninputs: Int32, outputs: Array[TFOutput], noutputs: Int32, target_opers: Array[TF_Operation], ntargets: Int32, IntPtr returnHandle, status: TF_Status) is external
+		routine TF_DeletePRunHandle (partialRunHandle: IntPtr) is external
+		routine TF_SessionPRun (session: TF_Session, partialHandle: IntPtr, inputs: Array[TFOutput], input_values: Array[TF_Tensor], ninputs: Int32, outputs: Array[TFOutput], output_values: Array[TF_Tensor], noutputs: Int32, target_opers: Array[TF_Operation], ntargets: Int32, status: TF_Status) is external
+
+end
+
+unit TFSession extend TFDisposable
+	use TFSession_Static
+
+		const is Empty end
+
+		Graph is TFGraph
+
+		init (handle: IntPtr, graph: TFGraph) is 
+			super (handle) 
+			Graph := graph
+		end
+
+		init (graph: TFGraph, sessionOptions: TFSessionOptions, status: TFStatus) is
+
+			super(IntPtr.Zero)
+			Graph := graph
+			cstatus := TFStatus.Setup (status)
+			h := TF_NewSession (graph.handle, sessionOptions.handle, cstatus.handle)
+			cstatus.CheckMaybeRaise (status)
+			handle := h
+		end
+
+		init(graph: TFGraph, status: TFStatus) is
+			super(IntPtr.Zero)
+			Graph := graph
+			cstatus := TFStatus.Setup (status)
+			empty := TFSessionOptions.TF_NewSessionOptions ()
+			h := TF_NewSession (graph.handle, empty, cstatus.handle)
+			TFSessionOptions.TF_DeleteSessionOptions (empty)
+			cstatus.CheckMaybeRaise (status)
+			handle := h
+		end
+
+		init(status: TFStatus) is
+		 	init(TFGraph.init(), status)
+		end
+
+		routine FromSavedModel(sessionOptions: TFSessionOptions, runOptions: TFBuffer, exportDir: String, tags: Array[String], graph: TFGraph, metaGraphDef: TFBuffer, status: TFStatus): TFSession
+			cstatus := TFStatus.Setup (status)
+			h := TF_LoadSessionFromSavedModel (sessionOptions.handle, runOptions.LLBuffer, exportDir, tags, tags.Length, graph.handle, metaGraphDef.LLBuffer, cstatus.handle)
+
+			if cstatus.CheckMaybeRaise (status) then
+				return TFSession.Init(h, graph)
+			end
+			return Empty
+		end
+
+		routine CloseSession (TFStatus status = null) is
+			if handle = IntPtr.Zero then
+				raise "Object disposed!"
+			end
+			cstatus := TFStatus.Setup (status)
+			TF_CloseSession (handle, cstatus.handle)
+			cstatus.CheckMaybeRaise (status)
+		end
+
+		routine void DeleteSession (TFStatus status = null)
+			if handle = IntPtr.Zero then
+				raise "Object disposed!"
+			end			
+			cstatus := TFStatus.Setup (status)
+			TF_DeleteSession (handle, cstatus.handle)
+			cstatus.CheckMaybeRaise (status)
+		end
+
+		routine override NativeDispose (handle: IntPtr) is 
+
+			s := TFStatus.init()
+			TF_DeleteSession (handle, s.handle)
+			s.Dispose()
+		end
+
+		unit Runner
+		
+			inputs is List[TFOutput].init() 
+			outputs is List[TFOutput].init()
+			inputValues is List[TFTensor].init()
+			targets is List[TFOperation].init()
+
+			session: TFSession
+
+			init(session: TFSession) is
+				this.session := session
+			end
+
+			routine AddInput (input: TFOutput,  value: TFTensor): Runner is
+				inputs.Add(input)
+				inputValues.Add(value)
+				return this
+			end
+
+			routine AddInput (input: String, value: TFTensor): Runner is
+				inputs.Add (ParseOutput (input))
+				inputValues.Add (value)
+				return this
+			end
+
+			routine AddTarget (targets: Array[TFOperation]): Runner is
+				while t in targets loop
+					this.targets.Add(t)
+				end
+				return this
+			end
+
+
+			// Parses user strings that contain both the operation name and an index.
+			hidden routine ParseOutput (operation String): TFOutput is
+			{
+				p := operation.IndexOf(':')
+				if p != -1 && p != operation.Length - 1 then
+					op := operation.Substring(0, p)
+					idx is ref Integer
+					if Intneger.TryParse (operation.Substring(p + 1), idx) then
+						return session.Graph(op)(idx)
+					end
+				end
+				return session.Graph(operation)(0)
+			}
+
+			routine AddTarget (targetNames: Array[String]): Runner is
+				while tn in targetNames loop
+					this.targets.Add(session.Graph(tn))
+				end
+				return this
+			end
+
+			routine Fetch(string operation, int index): Runner is
+				op := session.Graph(operation)
+				outputs.Add(op(index))
+				return this
+			end
+
+			routine Fetch (operation: String): Runner is
+				op := ParseOutput (operation)
+				outputs.Add(op)
+				return this
+			end
+
+			routine  Fetch (TFOutput output): Runner is
+				outputs.Add (output)
+				return this
+			end
+
+			routine Fetch (outputs: Array[TFOutput] ): Runner is
+
+				while output in outputs loop
+					this.outputs.Add (output)
+				end
+				return this
+			end
+
+			routine Fetch (outputs: Array[String]): Runner is
+				while output in outputs loop
+					this.outputs.Add (ParseOutput (output))
+				end
+				return this
+			end
+
+			RunMetadata: TFBuffer
+
+			RunOptions: TFBuffer
+
+			routine Run (status: TFStatus): TFTensor is
+				return session.Run (inputs.ToArray(), inputValues.ToArray(), outputs.ToArray(), targets.ToArray(), RunMetadata, RunOptions, status)
+			end
+
+			routine Run(operation: TFOutput, status: TFStatus): TFTensor is
+				outputs.Clear()
+				Fetch(operation)
+				return Run(status)(0)
+			end
+
+		end
+
+		routine GetRunner(): Runner  is
+			return Runner.init(this)
+		end
+
+		routine Run (inputs: Array[TFOutput], inputValues: Array[TFTensor] , outputs: Array[TFOutput], targetOpers: Array[TFOperation], runMetadata: TFBuffer, runOptions: TFBuffer, status: TFStatus): Array[TFTensor] is
+			if handle = IntPtr.Zero then
+				raise "Object disposed!"
+			end			
+			iLen := inputs.Length
+			if iLen /= inputValues.Length then
+				raise "inputs and inputValues have different lengths"
+			end
+			int oLen := outputs.Length
+
+			// runOptions and runMetadata might be null
+			cstatus := TFStatus.Setup (status)
+
+			// Create arrays for the unmanaged versions
+			ivals := Array[IntPtr, iLen].init()
+
+			while i in 0..iLen loop
+				ivals(i) := inputValues(i).handle
+			end
+
+			// I believe this might not be necessary, the output values in TF_SessionRun looks like a write-only result
+			ovals := Array[IntPtr, outputs.Length].init()
+			
+			topers is ?Array[IntPtr]
+			tLen := 0
+			if topers is Array[IntPtr] then
+				tLen := targetOpers.Length
+				topers := Array[IntPtr, tLen].init()
+				while i in 0..tLen loop
+					topers(i) := targetOpers(i).handle
+				end
+			end
+
+			TF_SessionRun (handle, runOptions.LLBuffer, inputs, ivals, iLen, outputs, ovals, oLen, topers, tLen, runMetadata.LLBuffer, cstatus.handle)
+			cstatus.CheckMaybeRaise (status)
+			result is Array[TFTensor, oLen].init()
+			while i in 0..oLen loop
+				result(i) = TFTensor.init(ovals(i))
+			end
+			return result
+		end
+
+		unit PartialRunToken extend Disposable
+			token: IntPtr
+
+			routine override Dispose() is
+				if token = IntPtr.Zero then
+					TF_DeletePRunHandle(token)
+					token := IntPtr.Zero
+				end
+			end
+		end
+
+		routine PartialRunSetup (inputs: Array[TFOutput], outputs: Array[TFOutput], targetOpers: Array[TFOperation], status: TFStatus): PartialRunToken
+		{
+			if handle = IntPtr.Zero then
+				raise "Object disposed!"
+			end			
+			
+			returnHandle: IntPtr
+			cstatus := TFStatus.Setup(status)
+			int tLen := targetOpers.Length
+			topers := Array[IntPtr, tLen].init()
+			while i in 0..tLen loop
+				topers(i) := targetOpers(i).handle
+			end
+
+			TF_SessionPRunSetup(handle, inputs, inputs.Length, outputs, outputs.Length, topers, tLen, out returnHandle, cstatus.handle)
+			cstatus.CheckMaybeRaise(status)
+			rtk := PartialRunToken.init()
+			rtk.token := returnHandle
+			return rtk
+		end
+
+		// extern void TF_SessionPRun (TF_Session *, const char *handle, const TF_Output *inputs, TF_Tensor *const *input_values, int ninputs, const TF_Output *outputs, TF_Tensor **output_values, int noutputs, const TF_Operation *const *target_opers, int ntargets, TF_Status *);
+		routine Array[TFTensor] PartialRun (PartialRunToken token, inputs: Array[TFOutput], Array[TFTensor] inputValues, outputs: Array[TFOutput], targetOpers: Array[TFOperation], TFStatus status = null)
+		
+			if handle = IntPtr.Zero then
+				raise "Object disposed!"
+			end
+			iLen := inputs.Length
+			if iLen != inputValues.Length then
+				raise "inputs and inputValues have different lengths"
+			end
+			
+			oLen := outputs.Length
+
+			// runOptions and runMetadata might be null
+			cstatus := TFStatus.Setup(status)
+
+			// Create arrays for the unmanaged versions
+			ivals := Array[IntPtr,iLen].init()
+
+			while i in 0..iLen loop
+				ivals(i) = inputValues(i).handle
+			end
+			ovals := Array[IntPtr, oLen].init()
+			tLen := targetOpers.Length
+			topers := Array[IntPtr,tLen].init()
+			while i in 0..tLen loop
+				topers(i) = targetOpers(i).handle
+			end
+			
+			TF_SessionPRun (handle, token.token, inputs, ivals, iLen, outputs, ovals, oLen, topers, tLen, cstatus.handle)
+			cstatus.CheckMaybeRaise(status)
+
+			result := Array[TFTensor, oLen].init()
+			while i in 0..oLen loop
+				result(i) = new TFTensor(ovals(i));
+			end
+			return result
+		end
+	end

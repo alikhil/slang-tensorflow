@@ -20,4 +20,27 @@ When I have been working on this project the SLang compiler was not ready yet. A
 
 ## Example of usage
 
-TODO: write example here
+```
+session is TFSession.init()
+
+graph := session.Graph
+
+a := graph.Const(2)
+b := graph.Const(3)
+
+StandardIO.putString("a=2 b=3\n")
+// Add two constants
+
+addingResults := session.GetRunner().Run(graph.Add(a, b))
+addingResultValue := addingResults.GetValue()
+
+StandardIO.putString("a+b=" + addingResultValue.toString())
+
+// Multiply two constants
+multiplyResults := session.GetRunner().Run(graph.Mul(a, b))
+multiplyResultValue := multiplyResults.GetValue()
+
+StandardIO.putString("a*b=" + multiplyResultValue.toString())
+
+session.Dispose()
+```
