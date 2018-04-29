@@ -318,11 +318,11 @@ unit TF_Status extend TFDisposable
 					raise e
 				end
 				if (last) then
-					Dispose ();
+					Dispose ()
                 end
-				return true;
+				return true
 		end
-        return StatusCode = TFCode.Ok;
+        return StatusCode = TFCode.Ok
     end
 
     hidden raiseError() is
@@ -337,16 +337,16 @@ end
 unit TFString
         // TODO: convert to SLANG
 		// extern size_t TF_StringEncode (const char *src, size_t src_len, char *dst, size_t dst_len, TF_Status *status);
-		internal static extern unsafe size_t TF_StringEncode (byte* src, size_t src_len, sbyte* dst, size_t dst_len, TF_Status status);
+		internal static extern unsafe size_t TF_StringEncode (byte* src, size_t src_len, sbyte* dst, size_t dst_len, TF_Status status)
 		TF_StringEncode(src: ref Byte, src_len: UIntPtr, sbyte:) : UIntPtr 
 
 		// extern size_t TF_StringDecode (const char *src, size_t src_len, const char **dst, size_t *dst_len, TF_Status *status);
 		[DllImport (NativeBinding.TensorFlowLibrary)]
-		internal static extern unsafe size_t TF_StringDecode (sbyte* src, size_t src_len, sbyte** dst, size_t* dst_len, TF_Status status);
+		internal static extern unsafe size_t TF_StringDecode (sbyte* src, size_t src_len, sbyte** dst, size_t* dst_len, TF_Status status)
 
 		// extern size_t TF_StringEncodedSize (size_t len);
 		[DllImport (NativeBinding.TensorFlowLibrary)]
-		internal static extern size_t TF_StringEncodedSize (size_t len);
+		internal static extern size_t TF_StringEncodedSize (size_t len)
 
 end
 
@@ -475,11 +475,10 @@ val unit TFOutput
     Operation: TFOperation => TFOperation(null, LLOperation)
 
 
-    // TODO: does slang has toStr() ?
-    public override string ToString ()
-    {
-        return string.Format ("[{3} Index={1} Operation={2} (0x{0:X})]", (long) LLOperation, Index, Operation, OutputType);
-    }
+    // TODO: does slang has Format() ?
+    override toString(): String is
+        return String.Format ("[{3} Index={1} Operation={2} (0x{0:X})]", (Int64) LLOperation, Index, Operation, OutputType);
+    end
 
 end
 
@@ -577,7 +576,7 @@ unit TFOperationDesc extend TFDisposable
 
 	override routine NativeDispose(handle: IntPtr) is
 		// If you reach this, you never called FinishOperation
-		StdOut.WriteLine($"TFOperationDescription({opType},{operName} was never turned into an TFOperation");
+		StandardIO.putString($"TFOperationDescription({opType},{operName} was never turned into an TFOperation\n")
 
 	end
 
@@ -638,7 +637,7 @@ unit TFOperationDesc extend TFDisposable
 
 		// WARN: assuming that we have such functions
 		bytes: Array[Byte] := value.GetBytes()
-		buf: Marshal.AllocHGlobal(bytes.count + 1);
+		buf: Marshal.AllocHGlobal(bytes.count + 1)
 		Marshal.Copy(bytes, 0, buf, bytes.count)
 
 		TF_SetAttrString(handle, attrName, buf, bytes.count)
@@ -716,7 +715,7 @@ unit TFOperationDesc extend TFDisposable
 			if handle = IntPtr.Zero then
 				raise "Object disposed!"
 			end
-			TF_SetAttrBool (handle, attrName, (if value then 1 else 0));
+			TF_SetAttrBool (handle, attrName, (if value then 1 else 0))
 			return this
 		end
 
@@ -936,9 +935,9 @@ unit TFShape
 		full := Array[Int64, left.dims.count + right.dims.count]
 
 		// Assume: Array.Copy
-		Array.Copy (left.dims, full, left.dims.count);
-		Array.Copy (right.dims, 0, full, left.dims.count, right.dims.count);
-		return TFShape.init(full);
+		Array.Copy (left.dims, full, left.dims.count)
+		Array.Copy (right.dims, 0, full, left.dims.count, right.dims.count)
+		return TFShape.init(full)
 
 	end
 
@@ -1235,7 +1234,6 @@ unit TFSession extend TFDisposable
 
 			// Parses user strings that contain both the operation name and an index.
 			hidden routine ParseOutput (operation String): TFOutput is
-			{
 				p := operation.IndexOf(':')
 				if p != -1 && p != operation.Length - 1 then
 					op := operation.Substring(0, p)
@@ -1245,7 +1243,7 @@ unit TFSession extend TFDisposable
 					end
 				end
 				return session.Graph(operation)(0)
-			}
+			end
 
 			routine AddTarget (targetNames: Array[String]): Runner is
 				while tn in targetNames loop
@@ -1360,7 +1358,6 @@ unit TFSession extend TFDisposable
 		end
 
 		routine PartialRunSetup (inputs: Array[TFOutput], outputs: Array[TFOutput], targetOpers: Array[TFOperation], status: TFStatus): PartialRunToken
-		{
 			if handle = IntPtr.Zero then
 				raise "Object disposed!"
 			end			
@@ -1414,7 +1411,7 @@ unit TFSession extend TFDisposable
 
 			result := Array[TFTensor, oLen].init()
 			while i in 0..oLen loop
-				result(i) = new TFTensor(ovals(i));
+				result(i) = new TFTensor(ovals(i))
 			end
 			return result
 		end
