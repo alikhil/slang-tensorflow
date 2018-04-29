@@ -241,7 +241,7 @@ unit TFDisposable
 
         NativeDispose(handle: IntPtr) is abstract
 
-        dispose() is 
+        Dispose() is 
             NativeDispose(handle)
             handle = IntPtr.Zero
         end
@@ -1349,7 +1349,7 @@ unit TFSession extend TFDisposable
 	unit PartialRunToken extend Disposable
 		token: IntPtr
 
-		routine override Dispose() is
+		routine override NativeDispose() is
 			if token = IntPtr.Zero then
 				TF_DeletePRunHandle(token)
 				token := IntPtr.Zero
