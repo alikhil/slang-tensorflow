@@ -1164,14 +1164,14 @@ unit TFSession extend TFDisposable
 		init(TFGraph.init(), status)
 	end
 
-	routine FromSavedModel(sessionOptions: TFSessionOptions, runOptions: TFBuffer, exportDir: String, tags: Array[String], graph: TFGraph, metaGraphDef: TFBuffer, status: TFStatus): TFSession
+	routine FromSavedModel(sessionOptions: TFSessionOptions, runOptions: TFBuffer, exportDir: String, tags: Array[String], graph: TFGraph, metaGraphDef: TFBuffer, status: TFStatus): ?TFSession
 		cstatus := TFStatus.Setup (status)
 		h := TF_LoadSessionFromSavedModel (sessionOptions.handle, runOptions.LLBuffer, exportDir, tags, tags.Length, graph.handle, metaGraphDef.LLBuffer, cstatus.handle)
-
+		res is ?TFSession
 		if cstatus.CheckMaybeRaise (status) then
-			return TFSession.Init(h, graph)
+			res := TFSession.Init(h, graph)
 		end
-		return Empty
+		return res
 	end
 
 	routine CloseSession (TFStatus status = null) is
