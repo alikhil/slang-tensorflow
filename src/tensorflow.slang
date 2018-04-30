@@ -3,20 +3,20 @@
 // VoidRef ~ void*
 
 // We use this TF_Xxx as the native "TF_Xxx *" as those are opaque
-use IntPtr as TF_Status 
-use IntPtr as TF_SessionOptions 
-use IntPtr as TF_Graph 
-use IntPtr as TF_OperationDescription 
-use IntPtr as TF_Operation 
-use IntPtr as TF_Session 
-use IntPtr as TF_DeprecatedSession 
-use IntPtr as TF_Tensor 
-use IntPtr as TF_ImportGraphDefOptions 
-use IntPtr as TF_Library 
-use IntPtr as TF_BufferPtr 
-use IntPtr as TF_Function 
+// use IntPtr as TF_Status 
+// use IntPtr as TF_SessionOptions 
+// use IntPtr as TF_Graph 
+// use IntPtr as TF_OperationDescription 
+// use IntPtr as TF_Operation 
+// use IntPtr as TF_Session 
+// use IntPtr as TF_DeprecatedSession 
+// use IntPtr as TF_Tensor 
+// use IntPtr as TF_ImportGraphDefOptions 
+// use IntPtr as TF_Library 
+// use IntPtr as TF_BufferPtr 
+// use IntPtr as TF_Function 
 
-unit TFDataType
+unit TFDataType is
     const is 0..23 end
 		/// The TFDataType has not been set
     Unknown is 0
@@ -77,7 +77,7 @@ unit TFDataType
 end
 
 
-unit TF_Code
+unit TF_Code is
     
     const is 0..15 end
 
@@ -189,7 +189,7 @@ end
 
 
 /// Low-level: Enumeration describing the types of a metadata attribute
-unit TFAttributeType
+unit TFAttributeType is
 
     const is 0..8 end
 
@@ -223,7 +223,7 @@ unit TFAttributeType
 end
 
 
-unit TFDisposable
+unit TFDisposable is
 
     handle: IntPtr
 
@@ -239,25 +239,25 @@ unit TFDisposable
 		// TODO: do we have object disposing module via GC ? if we do then implement in smart way as in C# otherwise keep as it is
         
 
-        NativeDispose(handle: IntPtr) is abstract
+	routine NativeDispose(handle: IntPtr) is abstract
 
-        Dispose() is 
-            NativeDispose(handle)
-            handle = IntPtr.Zero
-        end
+	routine Dispose() is 
+		NativeDispose(handle)
+		handle = IntPtr.Zero
+	end
         
 end
 
 // this unit will be used by TF_Status
-unit TF_Status_Static // TFDisposable
+unit TF_Status_Static is // TFDisposable
 
-    TF_NewStatus(): TF_Status is external
+    routine TF_NewStatus(): TF_Status is external
 
-    TF_DeleteStatus(s: TF_Status) is external
+    routine TF_DeleteStatus(s: TF_Status) is external
 
-    TF_SetStatus(s: TF_Status, code: TF_Code, msg: String) is external
+    routine TF_SetStatus(s: TF_Status, code: TF_Code, msg: String) is external
 
-    TF_GetCode(s: TF_Status): TF_Code is external
+    routine TF_GetCode(s: TF_Status): TF_Code is external
 
     // Return a pointer to the (null-terminated) error message in *s.  The
     // return value points to memory that is only usable until the next
@@ -265,67 +265,67 @@ unit TF_Status_Static // TFDisposable
     // TF_OK.
     // TODO: how to convert pointer to null-terminated message
     // Done, we will assume that there is IntPtr unit which has GetString method
-    TF_Message(s: TF_Status): ref IntPtr is external
+    routine TF_Message(s: TF_Status): ref IntPtr is external
 
-    Setup(incoming: TF_Status) is 
+    routine Setup(incoming: TF_Status) is 
         return if incoming = IntPtr.Zero then TFStatus() else incoming
     end
 
 end
 
-unit TF_Status extend TFDisposable
-    use TF_Status_Static
+unit TF_Status extend TFDisposable is
+	// use TF_Status_Static // ADD_COMPILER_SUPPORT
 
     init() is
         super(TF_NewStatus())
     end
 
-    SetStatusCode(code: TF_Code, msg: String) is
+    routine SetStatusCode(code: TF_Code, msg: String) is
         TF_SetStatus(handle, code, msg)
     end
 
-    StatusMessage(): String => Marshal.getString(TF_Message(handle))
+    routine StatusMessage(): String => Marshal.getString(TF_Message(handle))
 
-    override DisposeNative(handle: TF_Status) is
+    override routine DisposeNative(handle: TF_Status) is
         TF_DeleteStatus(handle)
     end
 
-    StatusCode: TF_Code is
+    routine StatusCode: TF_Code is
         if handle = IntPtr.Zero then
             raise "Object disposed!"
         end
         return TF_GetCode(handle)
     end
 
-    IsOk: Boolean is
+    routine IsOk: Boolean is
         return StatusCode = TF_Code.Ok
     end
 
-    IsError: Boolean is
+    routine IsError: Boolean is
         return StatusCode /= TF_Code.Ok
     end
 
-    CheckMaybeRaise(status: ?TFStatus, last: Boolean = true) is 
-        if (not status is TFStatus) then
-				if handle = IntPtr.Zero then
-					StdOut.WriteLine ("oops")
-                end
-				if (StatusCode /= TFCode.Ok) then
-					var e = TFException (StatusMessage)
-					if (last) then
-						Dispose ()
-                    end
-					raise e
-				end
-				if (last) then
+    routine CheckMaybeRaise(status: ?TFStatus, last: Boolean) is 
+        if true then // ADD_COMPILER_SUPPORT: not status is TFStatus
+			if handle = IntPtr.Zero then
+				StdOut.WriteLine ("oops")
+			end
+			if StatusCode /= TFCode.Ok then
+				var e = TFException (StatusMessage)
+				if last then
 					Dispose ()
-                end
-				return true
+				end
+				raise e
+			end
+			if last then
+				Dispose ()
+			end
+			return true
 		end
         return StatusCode = TFCode.Ok
     end
 
-    hidden raiseError() is
+    hidden routine raiseError() is
         raise StatusMessage()
     end
 
@@ -334,24 +334,24 @@ unit TF_Status extend TFDisposable
     
 end
 
-unit TFString
-        // TODO: convert to SLANG
-		// extern size_t TF_StringEncode (const char *src, size_t src_len, char *dst, size_t dst_len, TF_Status *status);
-		internal static extern unsafe size_t TF_StringEncode (byte* src, size_t src_len, sbyte* dst, size_t dst_len, TF_Status status)
-		TF_StringEncode(src: ref Byte, src_len: UIntPtr, sbyte:) : UIntPtr 
+// unit TFString is
+//         // TODO: convert to SLANG
+// 		// extern size_t TF_StringEncode (const char *src, size_t src_len, char *dst, size_t dst_len, TF_Status *status);
+// 		internal static extern unsafe size_t TF_StringEncode (byte* src, size_t src_len, sbyte* dst, size_t dst_len, TF_Status status)
+// 		TF_StringEncode(src: ref Byte, src_len: UIntPtr, sbyte:) : UIntPtr 
 
-		// extern size_t TF_StringDecode (const char *src, size_t src_len, const char **dst, size_t *dst_len, TF_Status *status);
-		[DllImport (NativeBinding.TensorFlowLibrary)]
-		internal static extern unsafe size_t TF_StringDecode (sbyte* src, size_t src_len, sbyte** dst, size_t* dst_len, TF_Status status)
+// 		// extern size_t TF_StringDecode (const char *src, size_t src_len, const char **dst, size_t *dst_len, TF_Status *status);
+// 		[DllImport (NativeBinding.TensorFlowLibrary)]
+// 		internal static extern unsafe size_t TF_StringDecode (sbyte* src, size_t src_len, sbyte** dst, size_t* dst_len, TF_Status status)
 
-		// extern size_t TF_StringEncodedSize (size_t len);
-		[DllImport (NativeBinding.TensorFlowLibrary)]
-		internal static extern size_t TF_StringEncodedSize (size_t len)
+// 		// extern size_t TF_StringEncodedSize (size_t len);
+// 		[DllImport (NativeBinding.TensorFlowLibrary)]
+// 		internal static extern size_t TF_StringEncodedSize (size_t len)
 
-end
+// end
 
 
-unit TFSessionOptions_Static
+unit TFSessionOptions_Static is
 
     TF_NewSessionOptions(): TF_SessionOptions is external
 
@@ -362,26 +362,26 @@ unit TFSessionOptions_Static
     TF_SetConfig(options: TF_SessionOptions, proto: IntPtr, proto_len: UIntPtr, status: TF_Status) is external
 end
 
-unit TFSessionOptions extend TFDisposable
-	use TFSessionOptions_Static
+unit TFSessionOptions extend TFDisposable is
+	// use TFSessionOptions_Static // ADD_COMPILER_SUPPORT
 
     init() is
         super(TF_NewSessionOptions())
     end
 
-    override NativeDispose(options: TF_SessionOptions) is
+    override routine NativeDispose(options: TF_SessionOptions) is
         TF_DeleteSessionOptions(options)
     end
 
 
-    SetTarget(target: String) is
+    routine SetTarget(target: String) is
         if handle = IntPtr.Zero then
             raise "Object disposed!"
         end
         TF_SetTarget(target)
     end
 
-    SetConfig(protoData: IntPtr, length: Int, status: TF_Status) is
+    routine SetConfig(protoData: IntPtr, length: Int, status: TF_Status) is
         if handle = IntPtr.Zero then
             raise "Object disposed!"
         end
@@ -395,7 +395,7 @@ unit TFSessionOptions extend TFDisposable
 end
 
 
-unit TFInput_Static
+unit TFInput_Static is
 
     routine TF_OperationInput(oper_in: TFInput): TFOutput is external
 
@@ -404,8 +404,8 @@ end
 
 // WARN:
 // 	[StructLayout (LayoutKind.Sequential)]
-val unit TFInput
-    use TFInput_Static
+val unit TFInput is
+    // use TFInput_Static // ADD_COMPILER_SUPPORT
 
     Operation: TF_Operation
     Index: Integer
@@ -415,13 +415,8 @@ val unit TFInput
 end
 
 
-unit A
-	dom(b: as this) is 
 
-	end
-end
-
-unit TFOutput_Static
+unit TFOutput_Static is
 
     routine TF_OperationOutputNumConsumers(oper_out: TFOutput): Integer is external
 
@@ -434,8 +429,8 @@ end
 
 // WARN:
 // [StructLayout (LayoutKind.Sequential)]
-val unit TFOutput
-	use TFOutput
+val unit TFOutput is
+	// use TFOutput // ADD_COMPILER_SUPPORT
 	LLOperation: TF_Operation
     Index: Integer
 
@@ -472,12 +467,12 @@ val unit TFOutput
 
     // TODO: fix null
     // public TFOperation Operation => new TFOperation (null, LLOperation);
-    Operation: TFOperation => TFOperation(null, LLOperation)
+    routine Operation: TFOperation => TFOperation(null, LLOperation)
 
 
     // TODO: does slang has Format() ?
     override toString(): String is
-        return String.Format ("[{3} Index={1} Operation={2} (0x{0:X})]", (Int64) LLOperation, Index, Operation, OutputType);
+        return String.Format ("[{3} Index={1} Operation={2} (0x{0:X})]", /*(Int64)*/ LLOperation, Index, Operation, OutputType);
     end
 
 end
@@ -504,7 +499,7 @@ end
 
 
 
-unit TFOperationDesc_Static
+unit TFOperationDesc_Static is
 
 	routine TF_NewOperation(graph: TF_Graph, opType: String, oper_name: String): TF_OperationDescription is external
 
@@ -547,7 +542,7 @@ unit TFOperationDesc_Static
 	routine TF_SetAttrTensorShapeProto(desc: TF_OperationDescription, attr_name: String, proto: IntPtr, proto_len: UIntPtr, status: TF_Status) is external
 	
 	// TODO: was marked with todo in TensorFlowSharp
-	routine TF_SetAttrTensorShapeProtoList(desc: TF_OperationDescription, attr_name: String, protos: ref ref Void, proto_lens: UIntPtr, num_shapes: Int, status: TF_Status) is external
+	routine TF_SetAttrTensorShapeProtoList(desc: TF_OperationDescription, attr_name: String, protos: /*ref ref Void*/ refrefVoid, proto_lens: UIntPtr, num_shapes: Int, status: TF_Status) is external
 	
 	routine TF_SetAttrTensor(desc: TF_OperationDescription, attr_name: String, value: TF_Tensor, status: TF_Status) is external
 	
@@ -557,8 +552,8 @@ unit TFOperationDesc_Static
 
 end
 
-unit TFOperationDesc extend TFDisposable
-	use TFOperationDesc_Static
+unit TFOperationDesc extend TFDisposable is
+	// use TFOperationDesc_Static // ADD_COMPILER_SUPPORT
 
 	hidden opType: String
 	hidden operName: String
@@ -636,8 +631,10 @@ unit TFOperationDesc extend TFDisposable
 		end
 
 		// WARN: assuming that we have such functions
-		bytes: Array[Byte] := value.GetBytes()
-		buf: Marshal.AllocHGlobal(bytes.count + 1)
+		bytes: Array[Byte] 
+		bytes := value.GetBytes()
+
+		buf := Marshal.AllocHGlobal(bytes.count + 1)
 		Marshal.Copy(bytes, 0, buf, bytes.count)
 
 		TF_SetAttrString(handle, attrName, buf, bytes.count)
@@ -654,13 +651,16 @@ unit TFOperationDesc extend TFDisposable
 		lenghts is Array[IntPtr, n].init()
 
 		while pos in 0 .. n loop
+			bytes : Array[Byte]
+			buf: Array[Byte]
 			bytes := values(pos).GetBytes()
 			buf := Marshal.AllocHGlobal(bytes.count + 1)
 			bc := bytes.count
 
 			Marshal.Copy(bytes, 0, buf, bc)
 			unmanaged(i) := buf
-			lenghts(i) := bc as UIntPtr
+			// ADD_COMPILER_SUPPORT: as
+			// lenghts(i) := bc as UIntPtr
 		end
 
 		TF_SetAttrStringList(handle, attrName, unmanaged, lenghts, n)
@@ -699,7 +699,7 @@ unit TFOperationDesc extend TFDisposable
 			return this
 		end
 
-		routine SetAttr (attrName: String, float [] values): TFOperationDesc is
+		routine SetAttr (attrName: String, values: Array[Float]): TFOperationDesc is
 			if handle = IntPtr.Zero then
 				raise "Object disposed!"
 			end
@@ -780,20 +780,20 @@ unit TFOperationDesc extend TFDisposable
 			unmanaged = Marshal.AllocHGlobal(sizeof (IntPtr) * num_shapes)
 
 			ofs := 0
-			while i in 0 .. num_shapes loop
+			while i in 0..num_shapes loop
 
 				// TODO: assume Marshall.*
-				array := Marshal.AllocHGlobal (sizeof (Int64) * shapeList(i).dims.count)
+				array := Marshal.AllocHGlobal (sizeof(Int64) * shapeList(i).dims.count)
 				Marshal.Copy (shapeList(i).dims, 0, array, shapeList(i).dims.count)
 				Marshal.WriteIntPtr(unmanaged, ofs, array)
-				ofs += sizeof (IntPtr)
+				ofs := ofs + sizeof(IntPtr)
 			end
 			TF_SetAttrShapeList (handle, attrName, unmanaged, num_dims, num_shapes)
 			ofs := 0
 			while i in 0 .. num_shapes loop
 				ptr := Marshal.ReadIntPtr (unmanaged, ofs)
 				Marshal.FreeHGlobal (ptr)
-				ofs += sizeof (IntPtr)
+				ofs := ofs + sizeof (IntPtr)
 			end
 			Marshal.FreeHGlobal (unmanaged)
 			return this
@@ -862,12 +862,12 @@ unit TFOperationDesc extend TFDisposable
 
 end
 
-unit TFShape
+unit TFShape is
     const is 
         Unknown
     end 
 
-	Scalar is init({})
+	const is Scalar end
 
     dims: Array[Int64]
 
@@ -919,7 +919,9 @@ unit TFShape
 	override routine toString(): String is
 		// Assume: String.Join
 		// Assume: Array.Select - I think there will be some basic functions like map, find, etc
-		return "[" + String.Join (", ", dims.Select (x => if x = -1 then "?" else x.toString ())) + "]"
+		// ADD_COMPILER_SUPPORT: labdas
+		return ""
+		// return "[" + String.Join(", ", dims.Select (x => if x = -1 then "?" else x.toString ())) + "]"
 	end
 
 
@@ -950,7 +952,7 @@ unit TFShape
 
 end
 
-unit TFOperation_Static
+unit TFOperation_Static is
 		
 	routine TF_OperationName(oper: TF_Operation): IntPtr is external
 
@@ -960,11 +962,11 @@ unit TFOperation_Static
 
 	routine TF_OperationNumOutputs(oper: TF_Operation): Integer is external
 
-	routine TF_OperationOutputListLength(oper: TF_Operation, arg_name String, status: TF_Status): Integer is external
+	routine TF_OperationOutputListLength(oper: TF_Operation, String: arg_name, status: TF_Status): Integer is external
 
 	routine TF_OperationNumInputs(oper: TF_Operation): Integer is external
 
-	routine TF_OperationInputListLength(oper: TF_Operation, arg_name String, status: TF_Status): Integer is external
+	routine TF_OperationInputListLength(oper: TF_Operation, String: arg_name, status: TF_Status): Integer is external
 
 	routine TF_OperationNumControlInputs(oper: TF_Operation): Integer is external
 
@@ -974,13 +976,13 @@ unit TFOperation_Static
 
 	// WARN: [Out] [MarshalAs (UnmanagedType.LPArray, SizeParamIndex = 2)] 
 	// How to do it?
-	routine TF_OperationGetControlOutputs(oper: TF_Operation, /*[Out] [MarshalAs (UnmanagedType.LPArray, SizeParamIndex = 2)]*/ control_outputs Array[IntPtr], max_control_outputs: Integer): Integer is external
+	routine TF_OperationGetControlOutputs(oper: TF_Operation, /*[Out] [MarshalAs (UnmanagedType.LPArray, SizeParamIndex = 2)]*/ control_outputs: Array[IntPtr], max_control_outputs: Integer): Integer is external
 
 	routine TF_OperationGetAttrMetadata(oper: TF_Operation, attr_name: String, status: TF_Status): TFAttributeMetadata is external
 // marked with TODO:
 	routine TF_OperationGetAttrString(oper: TF_Operation, attr_name: String, value: VoidRef, max_length: UIntPtr, status: TF_Status) is external
 
-	routine TF_OperationGetAttrStringList(oper: TF_Operation, attr_name: String, values: ref VoidRef, ref UIntPtr lengths, max_values: Integer, storage: storage_size: VoidRefInteger: UIntPtr, status: TF_Status): void is external
+	routine TF_OperationGetAttrStringList(oper: TF_Operation, attr_name: String, values: ref VoidRef, lengths: ref UIntPtr, max_values: Integer, storage: storage_size, VoidRefInteger: UIntPtr, status: TF_Status): void is external
 
 	routine TF_OperationGetAttrInt(oper: TF_Operation, attr_name: String, value: ref Int64, status: TF_Status) is external
 
@@ -1000,12 +1002,13 @@ unit TFOperation_Static
 
 	routine TF_OperationGetAttrShape(oper: TF_Operation, attr_name: String, value: ref Int64, num_dims: Integer, status: TF_Status) is external
 
-	routine TF_OperationGetAttrShapeList(oper: TF_Operation, attr_name: String, long** dims, num_dims: ref Integer, num_shapes: Integer, storage: ref Int64, storage_size: Integer, status: TF_Status) is external
+	routine TF_OperationGetAttrShapeList(oper: TF_Operation, attr_name: String, dims: ref Int64Ptr, num_dims: ref Integer, num_shapes: Integer, storage: ref Int64, storage_size: Integer, status: TF_Status) is external
 
 	routine TF_OperationGetAttrTensorShapeProto(oper: TF_Operation, attr_name: String, value: ref LLBuffer, status: TF_Status) is external
 
 	// WARN: ref ref; is it ok?
-	routine TF_OperationGetAttrTensorShapeProtoList(oper: TF_Operation, attr_name: String, values: ref ref LLBuffer, max_values: Integer, status: TF_Status) is external
+	// ADD_COMPILER_SUPPORT: ref ref
+	routine TF_OperationGetAttrTensorShapeProtoList(oper: TF_Operation, attr_name: String, values: ref_ref_LLBuffer, max_values: Integer, status: TF_Status) is external
 
 	routine TF_OperationGetAttrTensor(oper: TF_Operation, attr_name: String, value: ref TF_Tensor, status: TF_Status) is external
 
@@ -1019,7 +1022,7 @@ end
 
 unit TFOperation is
 
-	use TFOperation_Static
+	// use TFOperation_Static // ADD_COMPILER_SUPPORT
 
 	Handle: IntPtr
 	graph: TFGraph
@@ -1060,7 +1063,7 @@ unit TFOperation is
 		res := TF_OperationInputListLength (handle, argName, cstatus.handle)
 		cstatus.CheckMaybeRaise (status)
 		return res
-	}
+	end
 
 	routine NumControlInputs() => TF_OperationNumControlInputs (handle)
 
@@ -1101,7 +1104,8 @@ unit TFOperation is
 
 		// No need to raise, we can return null in that case.
 		// WARN: I don't know how resolve
-		if not cstatus.Ok then
+		// ADD_COMPILER_SUPPORT: not		
+		if /*not*/ cstatus.Ok then
 			r.Dispose ()
 			raise "some shit happened"
 			// return null 
@@ -1115,20 +1119,20 @@ unit TFOperation is
 end
 
 
-unit TFSession_Static 
+unit TFSession_Static is 
 		routine TF_NewSession (graph: TF_Graph, opts: TF_SessionOptions, status: TF_Status): TF_Session is external
-		routine TF_LoadSessionFromSavedModel (session_options: TF_SessionOptions, run_options: ref LLBuffer, export_dir: String, tags: Array[String], tags_len Int32, graph: TF_Graph, meta_graph_def:  ref LLBuffer, status:  TF_Status): TF_Session is external
+		routine TF_LoadSessionFromSavedModel (session_options: TF_SessionOptions, run_options: ref LLBuffer, export_dir: String, tags: Array[String], tags_len: Int32 , graph: TF_Graph, meta_graph_def:  ref LLBuffer, status:  TF_Status): TF_Session is external
 		routine TF_CloseSession (session: TF_Session, status: TF_Status) is external
 		routine TF_DeleteSession (session: TF_Session, status: TF_Status) is external
 		routine TF_SessionRun (session: TF_Session, run_options: ref LLBuffer, inputs: Array[TFOutput], input_values: Array[TF_Tensor], ninputs: Int32, outputs: Array[TFOutput], output_values: Array[TF_Tensor], noutputs: Int32, target_opers: Array[TF_Operation], ntargets: Int32, run_metadata: ref LLBuffer, status: TF_Status) is external
-		routine TF_SessionPRunSetup (session: TF_Session, inputs: Array[TFOutput], ninputs: Int32, outputs: Array[TFOutput], noutputs: Int32, target_opers: Array[TF_Operation], ntargets: Int32, IntPtr returnHandle, status: TF_Status) is external
+		routine TF_SessionPRunSetup (session: TF_Session, inputs: Array[TFOutput], ninputs: Int32, outputs: Array[TFOutput], noutputs: Int32, target_opers: Array[TF_Operation], ntargets: Int32, returnHandle: IntPtr , status: TF_Status) is external
 		routine TF_DeletePRunHandle (partialRunHandle: IntPtr) is external
 		routine TF_SessionPRun (session: TF_Session, partialHandle: IntPtr, inputs: Array[TFOutput], input_values: Array[TF_Tensor], ninputs: Int32, outputs: Array[TFOutput], output_values: Array[TF_Tensor], noutputs: Int32, target_opers: Array[TF_Operation], ntargets: Int32, status: TF_Status) is external
 
 end
 
-unit TFSession extend TFDisposable
-	use TFSession_Static
+unit TFSession extend TFDisposable is
+	// use TFSession_Static // ADD_COMPILER_SUPPORT
 
 	const is Empty end
 
@@ -1164,17 +1168,17 @@ unit TFSession extend TFDisposable
 		init(TFGraph.init(), status)
 	end
 
-	routine FromSavedModel(sessionOptions: TFSessionOptions, runOptions: TFBuffer, exportDir: String, tags: Array[String], graph: TFGraph, metaGraphDef: TFBuffer, status: TFStatus): ?TFSession
+	routine FromSavedModel(sessionOptions: TFSessionOptions, runOptions: TFBuffer, exportDir: String, tags: Array[String], graph: TFGraph, metaGraphDef: TFBuffer, status: TFStatus): ?TFSession is
 		cstatus := TFStatus.Setup (status)
 		h := TF_LoadSessionFromSavedModel (sessionOptions.handle, runOptions.LLBuffer, exportDir, tags, tags.Length, graph.handle, metaGraphDef.LLBuffer, cstatus.handle)
-		res is ?TFSession
+		res: ?TFSession
 		if cstatus.CheckMaybeRaise (status) then
 			res := TFSession.Init(h, graph)
 		end
 		return res
 	end
 
-	routine CloseSession (TFStatus status = null) is
+	routine CloseSession (status: TFStatus) is
 		if handle = IntPtr.Zero then
 			raise "Object disposed!"
 		end
@@ -1183,7 +1187,7 @@ unit TFSession extend TFDisposable
 		cstatus.CheckMaybeRaise (status)
 	end
 
-	routine void DeleteSession (TFStatus status = null)
+	routine DeleteSession (status: TFStatus) is 
 		if handle = IntPtr.Zero then
 			raise "Object disposed!"
 		end			
@@ -1199,7 +1203,7 @@ unit TFSession extend TFDisposable
 		s.Dispose()
 	end
 
-	unit Runner
+	unit Runner is
 	
 		inputs is List[TFOutput].init() 
 		outputs is List[TFOutput].init()
@@ -1233,12 +1237,13 @@ unit TFSession extend TFDisposable
 
 
 		// Parses user strings that contain both the operation name and an index.
-		hidden routine ParseOutput (operation String): TFOutput is
-			p := operation.IndexOf(':')
-			if p != -1 && p != operation.Length - 1 then
+		hidden routine ParseOutput (operation: String ): TFOutput is
+			p : String
+			p := operation.IndexOf(":")
+			if p /= -1 && p /= operation.Length - 1 then
 				op := operation.Substring(0, p)
-				idx is ref Integer
-				if Intneger.TryParse (operation.Substring(p + 1), idx) then
+				idx: ref Integer
+				if Integer.TryParse (operation.Substring(p + 1), idx) then
 					return session.Graph(op)(idx)
 				end
 			end
@@ -1252,7 +1257,7 @@ unit TFSession extend TFDisposable
 			return this
 		end
 
-		routine Fetch(string operation, int index): Runner is
+		routine Fetch(operation: String , index: Integer): Runner is
 			op := session.Graph(operation)
 			outputs.Add(op(index))
 			return this
@@ -1264,7 +1269,7 @@ unit TFSession extend TFDisposable
 			return this
 		end
 
-		routine  Fetch (TFOutput output): Runner is
+		routine  Fetch (output: TFOutput): Runner is
 			outputs.Add (output)
 			return this
 		end
@@ -1327,26 +1332,29 @@ unit TFSession extend TFDisposable
 		// I believe this might not be necessary, the output values in TF_SessionRun looks like a write-only result
 		ovals := Array[IntPtr, outputs.Length].init()
 		
-		topers is ?Array[IntPtr]
+		topers: ?Array[IntPtr]
 		tLen := 0
-		if topers is Array[IntPtr] then
-			tLen := targetOpers.Length
-			topers := Array[IntPtr, tLen].init()
-			while i in 0..tLen loop
-				topers(i) := targetOpers(i).handle
-			end
-		end
+		// ADD_COMPILER_SUPPORT: x is Type
+
+		// if topers is Array[IntPtr] then
+		// 	tLen := targetOpers.Length
+		// 	topers := Array[IntPtr, tLen].init()
+		// 	while i in 0..tLen loop
+		// 		topers(i) := targetOpers(i).handle
+		// 	end
+		// end
 
 		TF_SessionRun (handle, runOptions.LLBuffer, inputs, ivals, iLen, outputs, ovals, oLen, topers, tLen, runMetadata.LLBuffer, cstatus.handle)
 		cstatus.CheckMaybeRaise (status)
 		result is Array[TFTensor, oLen].init()
+		
 		while i in 0..oLen loop
 			result(i) = TFTensor.init(ovals(i))
 		end
 		return result
 	end
 
-	unit PartialRunToken extend Disposable
+	unit PartialRunToken  extend Disposable is
 		token: IntPtr
 
 		routine override NativeDispose() is
@@ -1357,7 +1365,7 @@ unit TFSession extend TFDisposable
 		end
 	end
 
-	routine PartialRunSetup (inputs: Array[TFOutput], outputs: Array[TFOutput], targetOpers: Array[TFOperation], status: TFStatus): PartialRunToken
+	routine PartialRunSetup (inputs: Array[TFOutput], outputs: Array[TFOutput], targetOpers: Array[TFOperation], status: TFStatus): PartialRunToken is
 		if handle = IntPtr.Zero then
 			raise "Object disposed!"
 		end			
@@ -1370,7 +1378,7 @@ unit TFSession extend TFDisposable
 			topers(i) := targetOpers(i).handle
 		end
 
-		TF_SessionPRunSetup(handle, inputs, inputs.Length, outputs, outputs.Length, topers, tLen, out returnHandle, cstatus.handle)
+		TF_SessionPRunSetup(handle, inputs, inputs.Length, outputs, outputs.Length, topers, tLen, returnHandle, cstatus.handle)
 		cstatus.CheckMaybeRaise(status)
 		rtk := PartialRunToken.init()
 		rtk.token := returnHandle
@@ -1378,7 +1386,7 @@ unit TFSession extend TFDisposable
 	end
 
 	// extern void TF_SessionPRun (TF_Session *, const char *handle, const TF_Output *inputs, TF_Tensor *const *input_values, int ninputs, const TF_Output *outputs, TF_Tensor **output_values, int noutputs, const TF_Operation *const *target_opers, int ntargets, TF_Status *);
-	routine Array[TFTensor] PartialRun (PartialRunToken token, inputs: Array[TFOutput], Array[TFTensor] inputValues, outputs: Array[TFOutput], targetOpers: Array[TFOperation], TFStatus status = null)
+	routine  PartialRun (token: PartialRunToken , inputs: Array[TFOutput], inputValues: Array[TFTensor] , outputs: Array[TFOutput], targetOpers: Array[TFOperation], status: TFStatus): Array[TFTensor] is
 	
 		if handle = IntPtr.Zero then
 			raise "Object disposed!"
@@ -1418,7 +1426,7 @@ unit TFSession extend TFDisposable
 end
 
 
-unit TFAttributeMetadata
+unit TFAttributeMetadata is
 	isList: Byte
 	routine IsList(): Boolean => isList /= 0
 	ListSize: Int64
